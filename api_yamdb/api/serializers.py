@@ -1,8 +1,9 @@
 from django.contrib.auth import authenticate, get_user_model
 from django.core.validators import RegexValidator
-from django.utils.translation import ugettext_lazy as _
+# from django.utils.translation import ugettext_lazy as _
 from rest_framework import exceptions, serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+# from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .models import Category, Genre, Title, GenreTitle
 
 from users.models import User
 
@@ -52,7 +53,9 @@ class UserSerializer(serializers.ModelSerializer):
             user = User.objects.get(username=username)
             if user.email != email:
                 raise serializers.ValidationError(
-                    {'email': 'Этот username уже зарегистрирован с другим email'}
+                    {'email': (
+                        'Этот username уже зарегистрирован c другим email'
+                    )}
                 )
         except User.DoesNotExist:
             if User.objects.filter(email=email).exists():
@@ -61,3 +64,73 @@ class UserSerializer(serializers.ModelSerializer):
                 )
 
         return data
+
+# serializers for models
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('name', 'slug')
+
+
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = ('name', 'slug')
+
+
+class GenreTitleSerializer(serializers.ModelSerializer):
+    genre = serializers.SlugRelatedField(slug_field='slug', read_only=True)
+    title = serializers.SlugRelatedField(slug_field='name', read_only=True)
+
+    class Meta:
+        model = GenreTitle
+        fields = ('id', 'genre', 'title')
+
+
+class TitleReadSerializer(serializers.ModelSerializer):
+    genre = GenreSerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
+    rating = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Title
+        fields = (
+            'id', 'name', 'year', 'description',
+            'genre', 'category', 'rating'
+        )
+
+
+class TitleWriteSerializer(serializers.ModelSerializer):
+    genre = serializers.SlugRelatedField(
+        many=True,
+        slug_field='slug',
+        queryset=Genre.objects.all()
+    )
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Category.objects.all()
+    )
+
+    class Meta:
+        model = Title
+        fields = (
+            'name', 'year', 'description',
+            'genre', 'category'
+        )
+
+    def create(self, validated_data):
+        genres = validated_data.pop('genre')
+        title = Title.objects.create(**validated_data)
+        for genre in genres:
+            GenreTitle.objects.create(genre=genre, title=title)
+        return title
+
+    def update(self, instance, validated_data):
+        genres = validated_data.pop('genre', None)
+        if genres is not None:
+            instance.genre.clear()
+            for genre in genres:
+                GenreTitle.objects.create(genre=genre, title=instance)
+        return super().update(instance, validated_data)
