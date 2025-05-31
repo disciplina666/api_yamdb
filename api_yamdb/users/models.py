@@ -1,0 +1,52 @@
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+
+class User(AbstractUser):
+    """Кастомная модель пользователя с дополнительными полями."""
+
+    USER = 'user'
+    MODERATOR = 'moderator'
+    ADMIN = 'admin'
+
+    ROLE_CHOICES = [
+        (USER, 'Пользователь'),
+        (MODERATOR, 'Модератор'),
+        (ADMIN, 'Администратор'),
+    ]
+
+    bio = models.TextField(
+        'Биография',
+        blank=True,
+        null=True,
+    )
+    role = models.CharField(
+        'Роль',
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default=USER,
+    )
+    confirmation_code = models.CharField(
+        'Код подтверждения',
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    email = models.EmailField(
+        'Email',
+        unique=True,
+        blank=False,
+        null=False,
+    )
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
+    @property
+    def is_admin(self):
+        return self.role == self.ADMIN or self.is_superuser
+
+    @property
+    def is_moderator(self):
+        return self.role == self.MODERATOR
