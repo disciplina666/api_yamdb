@@ -1,3 +1,5 @@
+from django.shortcuts import render
+
 import random
 
 from django.conf import settings
