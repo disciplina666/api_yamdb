@@ -8,13 +8,20 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.models import User
 
 from .serializers import CodeAuthSerializer, UserSerializer
 
 
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
 class CodeAuthView(APIView):
+
     def post(self, request):
         serializer = CodeAuthSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
