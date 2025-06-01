@@ -3,7 +3,7 @@ from django.core.validators import RegexValidator
 # from django.utils.translation import ugettext_lazy as _
 from rest_framework import exceptions, serializers
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import Category, Genre, Title, GenreTitle
+from reviews.models import Category, Genre, Title, GenreTitle
 
 from users.models import User
 

@@ -10,8 +10,9 @@ from rest_framework.views import APIView
 from users.models import User
 from django.db.models import Avg
 from rest_framework.pagination import PageNumberPagination
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from ..reviews.models import Category, Genre, Title
+from reviews.models import Category, Genre, Title
 from .serializers import (
     CodeAuthSerializer,
     UserSerializer,
@@ -21,6 +22,11 @@ from .serializers import (
     TitleWriteSerializer,
 )
 from .permissions import IsAdminOrReadOnly
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
 
 
 class CodeAuthView(APIView):
