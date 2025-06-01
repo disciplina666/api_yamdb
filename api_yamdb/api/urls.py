@@ -5,22 +5,20 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
 )
-
-from .views import (
-    CodeAuthView,
-    CodeViewSet,
-    UserViewSet,
-)
+from .views import CategoryViewSet, GenreViewSet, TitleViewSet
+from .views import CodeAuthView, CodeViewSet
 
 router = DefaultRouter()
-router.register('users', UserViewSet)
+router.register('categories', CategoryViewSet, basename='category')
+router.register('genres', GenreViewSet, basename='genre')
+router.register('titles', TitleViewSet, basename='title')
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('auth/signup/',
          CodeViewSet.as_view({'post': 'send_code'}),
          name='send_code'),
     path('auth/token/', CodeAuthView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify')
+    path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('v1/', include(router.urls)),
 ]
