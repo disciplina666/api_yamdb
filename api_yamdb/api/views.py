@@ -11,7 +11,7 @@ from users.models import User
 from django.db.models import Avg
 from rest_framework.pagination import PageNumberPagination
 
-from .models import Category, Genre, Title
+from ..reviews.models import Category, Genre, Title
 from .serializers import (
     CodeAuthSerializer,
     UserSerializer,
