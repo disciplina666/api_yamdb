@@ -6,17 +6,10 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 
-from .views import (
-    CodeAuthView,
-    CodeViewSet,
-    UserViewSet,
-)
+from .views import CodeAuthView, CodeViewSet
 
-router = DefaultRouter()
-router.register('users', UserViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('auth/signup/',
          CodeViewSet.as_view({'post': 'send_code'}),
          name='send_code'),
