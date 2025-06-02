@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.conf import settings
 from django.core.mail import send_mail
 from rest_framework import status, viewsets, filters, mixins
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,6 +12,7 @@ from users.models import User
 from django.db.models import Avg
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.pagination import PageNumberPagination
 
 from reviews.models import Category, Genre, Title
 from .serializers import (
@@ -21,12 +23,22 @@ from .serializers import (
     TitleReadSerializer,
     TitleWriteSerializer,
 )
-from .permissions import IsAdminOrReadOnly
+from .permissions import IsAdminOrReadOnly, IsAdmin
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username']
+    lookup_field = 'username'
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_permissions(self):
+        if self.request.method == 'GET' or self.request.method == 'DELETE':
+            return [IsAdmin()]
+        return [IsAuthenticated()]
 
 
 class CodeAuthView(APIView):

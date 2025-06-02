@@ -17,7 +17,7 @@ router = DefaultRouter()
 router.register('categories', CategoryViewSet, basename='category')
 router.register('genres', GenreViewSet, basename='genre')
 router.register('titles', TitleViewSet, basename='title')
-router.register('users', UserViewSet)
+router.register('users', UserViewSet, basename='user')
 
 urlpatterns = [
     path('auth/signup/',
