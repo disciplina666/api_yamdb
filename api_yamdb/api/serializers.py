@@ -1,9 +1,8 @@
-from django.contrib.auth import authenticate, get_user_model
 from django.core.validators import RegexValidator
-# from django.utils.translation import ugettext_lazy as _
+
 from rest_framework import exceptions, serializers
-# from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from reviews.models import Category, Genre, Title, GenreTitle
+
+from reviews.models import Category, Genre, GenreTitle, Title
 
 from users.models import User
 
@@ -38,34 +37,42 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'email')
+        fields = (
+            'username', 'email', 'first_name', 'last_name', 'bio', 'role'
+        )
 
     def validate(self, data):
         email = data.get('email')
         username = data.get('username')
 
-        if username.lower() == 'me':
-            raise serializers.ValidationError(
-                {'username': 'Имя пользователя "me" не разрешено'}
-            )
-
-        try:
-            user = User.objects.get(username=username)
-            if user.email != email:
+        if username:
+            if username.lower() == 'me':
                 raise serializers.ValidationError(
-                    {'email': (
-                        'Этот username уже зарегистрирован c другим email'
-                    )}
+                    {'username': 'Имя пользователя "me" не разрешено'}
                 )
-        except User.DoesNotExist:
-            if User.objects.filter(email=email).exists():
-                raise serializers.ValidationError(
-                    {'email': 'Этот email уже зарегистрирован'}
-                )
+        if username and email:
+            try:
+                user = User.objects.get(username=username)
+                if user.email != email:
+                    raise serializers.ValidationError(
+                        {'email': (
+                            'Этот username уже зарегистрирован c другим email'
+                        )}
+                    )
+            except User.DoesNotExist:
+                if User.objects.filter(email=email).exists():
+                    raise serializers.ValidationError(
+                        {'email': 'Этот email уже зарегистрирован'}
+                    )
 
         return data
 
-# serializers for models
+
+class UserRoleSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        read_only_fields = (
+            'role', 'username', 'email', 'is_superuser', 'is_staff'
+        )
 
 
 class CategorySerializer(serializers.ModelSerializer):

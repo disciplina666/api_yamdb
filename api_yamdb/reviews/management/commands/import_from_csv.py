@@ -1,11 +1,12 @@
-from csv import DictReader
 import os
+from csv import DictReader
 
 from django.conf import settings
 from django.core.management import BaseCommand
+from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
 
-from reviews.models import Category, Comment, Genre, Review, Title, GenreTitle
 from .models import CustomUser
+
 
 DATA_DB = {
     CustomUser: 'users.csv',
