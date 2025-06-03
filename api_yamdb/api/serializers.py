@@ -67,6 +67,12 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 
+
+class UserRoleSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        read_only_fields = ('role', 'username', 'email', 'is_superuser', 'is_staff')
+
+
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category

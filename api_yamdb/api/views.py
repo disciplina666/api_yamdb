@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.conf import settings
 from django.core.mail import send_mail
 from rest_framework import status, viewsets, filters, mixins
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -22,6 +23,7 @@ from .serializers import (
     GenreSerializer,
     TitleReadSerializer,
     TitleWriteSerializer,
+    UserRoleSerializer,
 )
 from .permissions import IsAdminOrReadOnly, IsAdmin
 
@@ -29,16 +31,36 @@ from .permissions import IsAdminOrReadOnly, IsAdmin
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdmin]
     filter_backends = [filters.SearchFilter]
     search_fields = ['username']
     lookup_field = 'username'
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
-    def get_permissions(self):
-        if self.request.method == 'GET' or self.request.method == 'DELETE':
-            return [IsAdmin()]
-        return [IsAuthenticated()]
+
+    @action(
+        detail=False,
+        methods=['get', 'patch'],
+        permission_classes=[IsAuthenticated]
+    )
+    def me(self, request):
+        user = self.request.user
+
+        serializer_class = UserRoleSerializer
+
+        if request.method == 'GET':
+            serializer = serializer_class(user)
+            return Response(serializer.data)
+
+        if self.request.method == 'PATCH':
+            serializer = serializer_class(
+                user,
+                data=request.data,
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+        return Response(serializer.data)
 
 
 class CodeAuthView(APIView):
