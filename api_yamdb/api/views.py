@@ -1,31 +1,31 @@
 import random
 
-from django.shortcuts import render
 from django.conf import settings
 from django.core.mail import send_mail
-from rest_framework import status, viewsets, filters, mixins
+from django.db.models import Avg
+from django.shortcuts import render
+
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from users.models import User
-from django.db.models import Avg
-from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.pagination import PageNumberPagination
 
 from reviews.models import Category, Genre, Title
+from users.models import User
+
+from .permissions import IsAdmin, IsAdminOrReadOnly
 from .serializers import (
-    CodeAuthSerializer,
-    UserSerializer,
     CategorySerializer,
+    CodeAuthSerializer,
     GenreSerializer,
     TitleReadSerializer,
     TitleWriteSerializer,
     UserRoleSerializer,
+    UserSerializer,
 )
-from .permissions import IsAdminOrReadOnly, IsAdmin
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -36,7 +36,6 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ['username']
     lookup_field = 'username'
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
-
 
     @action(
         detail=False,

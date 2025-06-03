@@ -1,9 +1,8 @@
-from django.contrib.auth import authenticate, get_user_model
 from django.core.validators import RegexValidator
-from django.core.validators import MaxLengthValidator
-from rest_framework import exceptions, serializers
-from reviews.models import Category, Genre, Title, GenreTitle
 
+from rest_framework import exceptions, serializers
+
+from reviews.models import Category, Genre, GenreTitle, Title
 
 from users.models import User
 
@@ -38,7 +37,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name', 'bio', 'role')
+        fields = (
+            'username', 'email', 'first_name', 'last_name', 'bio', 'role'
+        )
 
     def validate(self, data):
         email = data.get('email')
@@ -67,10 +68,11 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 
-
 class UserRoleSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
-        read_only_fields = ('role', 'username', 'email', 'is_superuser', 'is_staff')
+        read_only_fields = (
+            'role', 'username', 'email', 'is_superuser', 'is_staff'
+        )
 
 
 class CategorySerializer(serializers.ModelSerializer):
