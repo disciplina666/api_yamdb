@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import render
+from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
@@ -26,6 +27,7 @@ from .serializers import (
     UserRoleSerializer,
     UserSerializer,
 )
+from .filters import TitleFilter
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -148,8 +150,10 @@ class TitleViewSet(viewsets.ModelViewSet):
         rating=Avg('reviews__score')
     ).all()
     permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [filters.SearchFilter]
-    filterset_fields = ['category__slug', 'genre__slug', 'name', 'year']
+    # filter_backends = [filters.SearchFilter]
+    # filterset_fields = ['category__slug', 'genre__slug', 'name', 'year']
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_class = TitleFilter
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
