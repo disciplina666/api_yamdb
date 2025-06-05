@@ -1,8 +1,8 @@
-from django.contrib.auth import authenticate, get_user_model
 from django.core.validators import RegexValidator
-from django.utils.translation import ugettext_lazy as _
+
 from rest_framework import exceptions, serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from reviews.models import Category, Genre, GenreTitle, Title, Review, Comment
 
 from users.models import User
 
@@ -37,27 +37,140 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'email')
+        fields = (
+            'username', 'email', 'first_name', 'last_name', 'bio', 'role'
+        )
 
     def validate(self, data):
         email = data.get('email')
         username = data.get('username')
 
-        if username.lower() == 'me':
-            raise serializers.ValidationError(
-                {'username': 'Имя пользователя "me" не разрешено'}
-            )
-
-        try:
-            user = User.objects.get(username=username)
-            if user.email != email:
+        if username:
+            if username.lower() == 'me':
                 raise serializers.ValidationError(
-                    {'email': 'Этот username уже зарегистрирован с другим email'}
+                    {'username': 'Имя пользователя "me" не разрешено'}
                 )
-        except User.DoesNotExist:
-            if User.objects.filter(email=email).exists():
-                raise serializers.ValidationError(
-                    {'email': 'Этот email уже зарегистрирован'}
-                )
+        if username and email:
+            try:
+                user = User.objects.get(username=username)
+                if user.email != email:
+                    raise serializers.ValidationError(
+                        {'email': (
+                            'Этот username уже зарегистрирован c другим email'
+                        )}
+                    )
+            except User.DoesNotExist:
+                if User.objects.filter(email=email).exists():
+                    raise serializers.ValidationError(
+                        {'email': 'Этот email уже зарегистрирован'}
+                    )
 
         return data
+
+
+class UserRoleSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        read_only_fields = (
+            'role', 'username', 'email', 'is_superuser', 'is_staff'
+        )
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('name', 'slug')
+
+
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = ('name', 'slug')
+
+
+class GenreTitleSerializer(serializers.ModelSerializer):
+    genre = serializers.SlugRelatedField(slug_field='slug', read_only=True)
+    title = serializers.SlugRelatedField(slug_field='name', read_only=True)
+
+    class Meta:
+        model = GenreTitle
+        fields = ('id', 'genre', 'title')
+
+
+class TitleReadSerializer(serializers.ModelSerializer):
+    genre = GenreSerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
+    rating = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Title
+        fields = (
+            'id', 'name', 'year', 'description',
+            'genre', 'category', 'rating'
+        )
+
+
+class TitleWriteSerializer(serializers.ModelSerializer):
+    genre = serializers.SlugRelatedField(
+        many=True,
+        slug_field='slug',
+        queryset=Genre.objects.all()
+    )
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Category.objects.all()
+    )
+
+    class Meta:
+        model = Title
+        fields = (
+            'id', 'name', 'year', 'description',
+            'genre', 'category'
+        )
+
+    def create(self, validated_data):
+        genres = validated_data.pop('genre')
+        title = Title.objects.create(**validated_data)
+        for genre in genres:
+            GenreTitle.objects.create(genre=genre, title=title)
+        return title
+
+    def update(self, instance, validated_data):
+        genres = validated_data.pop('genre', None)
+        if genres is not None:
+            instance.genre.clear()
+            for genre in genres:
+                GenreTitle.objects.create(genre=genre, title=instance)
+        return super().update(instance, validated_data)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
+
+    class Meta:
+        model = Review
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        read_only_fields = ('author', 'pub_date')
+
+    def create(self, validated_data):
+        validated_data.pop('author', None)
+
+        return Review.objects.create(
+            title=self.context['title'],
+            author=self.context['request'].user,
+            **validated_data
+        )
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'text', 'author', 'pub_date')
+        read_only_fields = ('author', 'pub_date')

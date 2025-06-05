@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 
 
@@ -11,8 +12,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-from datetime import timedelta
-
 
 # Application definition
 
@@ -24,11 +23,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'api',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
     'api.apps.ApiConfig',
     'users.apps.UsersConfig',
+    'reviews.apps.ReviewsConfig',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -40,7 +40,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 
 
 ROOT_URLCONF = 'api_yamdb.urls'
@@ -66,9 +65,13 @@ WSGI_APPLICATION = 'api_yamdb.wsgi.application'
 
 
 REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 10,
+
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
+
 }
 
 AUTH_USER_MODEL = 'users.User'
@@ -101,8 +104,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -112,9 +113,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
 
 STATIC_URL = '/static/'
 
