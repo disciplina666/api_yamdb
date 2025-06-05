@@ -1,10 +1,9 @@
 import random
 
-from django.conf import settings
 from django.core.mail import send_mail
 from django.db.models import Avg
-from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import serializers
 
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
@@ -13,9 +12,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from django.shortcuts import get_object_or_404
 
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Genre, Title, Review
 from users.models import User
+from .permissions import IsAdminModeratorAuthorOrReadOnly
 
 from .permissions import IsAdmin, IsAdminOrReadOnly
 from .serializers import (
@@ -26,6 +28,8 @@ from .serializers import (
     TitleWriteSerializer,
     UserRoleSerializer,
     UserSerializer,
+    ReviewSerializer,
+    CommentSerializer,
 )
 from .filters import TitleFilter
 
@@ -146,6 +150,7 @@ class GenreViewSet(
 
 
 class TitleViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')
     ).all()
@@ -159,3 +164,58 @@ class TitleViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return TitleReadSerializer
         return TitleWriteSerializer
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    permission_classes = [
+        IsAuthenticatedOrReadOnly,
+        IsAdminModeratorAuthorOrReadOnly
+    ]
+    pagination_class = PageNumberPagination
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        return title.reviews.all().order_by('-pub_date')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['title'] = get_object_or_404(
+            Title, pk=self.kwargs.get('title_id'))
+        return context
+
+    def perform_create(self, serializer):
+        title = self.get_serializer_context()['title']
+        if Review.objects.filter(title=title,
+                                 author=self.request.user).exists():
+            raise serializers.ValidationError(
+                'Вы уже оставляли отзыв на это произведение.'
+            )
+        serializer.save()
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = [
+        IsAuthenticatedOrReadOnly,
+        IsAdminModeratorAuthorOrReadOnly
+    ]
+    pagination_class = PageNumberPagination
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        review = get_object_or_404(
+            Review,
+            pk=self.kwargs.get('review_id'),
+            title__id=self.kwargs.get('title_id')
+        )
+        return review.comments.all().order_by('-pub_date')
+
+    def perform_create(self, serializer):
+        review = get_object_or_404(
+            Review,
+            pk=self.kwargs.get('review_id'),
+            title__id=self.kwargs.get('title_id')
+        )
+        serializer.save(author=self.request.user, review=review)

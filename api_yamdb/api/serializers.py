@@ -2,7 +2,7 @@ from django.core.validators import RegexValidator
 
 from rest_framework import exceptions, serializers
 
-from reviews.models import Category, Genre, GenreTitle, Title
+from reviews.models import Category, Genre, GenreTitle, Title, Review, Comment
 
 from users.models import User
 
@@ -141,3 +141,36 @@ class TitleWriteSerializer(serializers.ModelSerializer):
             for genre in genres:
                 GenreTitle.objects.create(genre=genre, title=instance)
         return super().update(instance, validated_data)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
+
+    class Meta:
+        model = Review
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        read_only_fields = ('author', 'pub_date')
+
+    def create(self, validated_data):
+        validated_data.pop('author', None)
+
+        return Review.objects.create(
+            title=self.context['title'],
+            author=self.context['request'].user,
+            **validated_data
+        )
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'text', 'author', 'pub_date')
+        read_only_fields = ('author', 'pub_date')

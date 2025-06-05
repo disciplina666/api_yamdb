@@ -30,11 +30,9 @@ class Command(BaseCommand):
                     reader = DictReader(csv_file)
                     objects_to_create = []
                     for row in reader:
-                        # Обработка и преобразование данных при необходимости
                         data = {}
                         for field in row:
                             value = row[field]
-                            # Можно добавить преобразование типов по необходимости
                             data[field] = value.strip()
                         obj = model(**data)
                         objects_to_create.append(obj)
