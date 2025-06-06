@@ -23,8 +23,7 @@ from .filters import TitleFilter
 from .permissions import (
     IsAdmin,
     IsAdminModeratorAuthorOrReadOnly,
-    IsAdminOrReadOnly
-                    )
+    IsAdminOrReadOnly)
 from .serializers import (
     CategorySerializer,
     CodeAuthSerializer,
