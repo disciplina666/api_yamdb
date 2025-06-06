@@ -2,37 +2,35 @@ import random
 
 from django.core.mail import send_mail
 from django.db.models import Avg
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.tokens import default_token_generator
-from rest_framework import serializers
 
-from rest_framework import filters, mixins, status, viewsets
+from rest_framework import filters, mixins, serializers, status, viewsets
+
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from django.shortcuts import get_object_or_404
+from reviews.models import Category, Genre, Review, Title
 
-from reviews.models import Category, Genre, Title, Review
 from users.models import User
-from .permissions import IsAdminModeratorAuthorOrReadOnly
 
-from .permissions import IsAdmin, IsAdminOrReadOnly
+from .filters import TitleFilter
+from .permissions import IsAdmin, IsAdminModeratorAuthorOrReadOnly, IsAdminOrReadOnly
 from .serializers import (
     CategorySerializer,
     CodeAuthSerializer,
+    CommentSerializer,
     GenreSerializer,
+    ReviewSerializer,
     TitleReadSerializer,
     TitleWriteSerializer,
     UserRoleSerializer,
     UserSerializer,
-    ReviewSerializer,
-    CommentSerializer,
 )
-from .filters import TitleFilter
 
 
 class UserViewSet(viewsets.ModelViewSet):

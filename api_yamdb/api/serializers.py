@@ -1,10 +1,10 @@
-from django.contrib.auth.tokens import default_token_generator
 from django.core.validators import RegexValidator, MaxLengthValidator
-
-from rest_framework import serializers
+from django.contrib.auth.tokens import default_token_generator
+from django.shortcuts import get_object_or_404
+from rest_framework import exceptions, serializers
 from rest_framework.exceptions import NotFound
+from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
 
-from reviews.models import Category, Genre, GenreTitle, Title, Review, Comment
 
 from users.models import User
 
@@ -18,7 +18,8 @@ class CodeAuthSerializer(serializers.Serializer):
         confirmation_code = data.get('confirmation_code')
 
         try:
-            user = User.objects.get(username=username)
+
+            user = get_object_or_404(User, username=attrs['username'])
         except User.DoesNotExist:
             raise NotFound('Пользователь с таким именем не существует')
 
@@ -130,21 +131,6 @@ class TitleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = ("id", "name", "year", "description", "genre", "category")
-
-    def create(self, validated_data):
-        genres = validated_data.pop("genre")
-        title = Title.objects.create(**validated_data)
-        for genre in genres:
-            GenreTitle.objects.create(genre=genre, title=title)
-        return title
-
-    def update(self, instance, validated_data):
-        genres = validated_data.pop("genre", None)
-        if genres is not None:
-            instance.genre.clear()
-            for genre in genres:
-                GenreTitle.objects.create(genre=genre, title=instance)
-        return super().update(instance, validated_data)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
