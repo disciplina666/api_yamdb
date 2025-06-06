@@ -4,7 +4,10 @@ from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth.tokens import default_token_generator
+
 from rest_framework import filters, mixins, serializers, status, viewsets
+
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -94,17 +97,19 @@ class CodeViewSet(viewsets.ModelViewSet):
 
         user, created = User.objects.get_or_create(
             email=email,
-            defaults={'username': username, 'confirmation_code': code}
+            defaults={'username': username}
         )
 
         if not created:
             user.confirmation_code = code
             user.save()
 
+        confirmation_code = default_token_generator.make_token(user)
+
         send_mail(
             subject='Ваш код подтверждения',
-            message=f'Код для входа: {code}',
-            from_email='<EMAIL>',
+            message=f'Код для входа: {confirmation_code}',
+            from_email=None,
             recipient_list=[email],
             fail_silently=False,
         )
@@ -151,8 +156,6 @@ class TitleViewSet(viewsets.ModelViewSet):
         rating=Avg('reviews__score')
     ).all()
     permission_classes = [IsAdminOrReadOnly]
-    # filter_backends = [filters.SearchFilter]
-    # filterset_fields = ['category__slug', 'genre__slug', 'name', 'year']
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = TitleFilter
 

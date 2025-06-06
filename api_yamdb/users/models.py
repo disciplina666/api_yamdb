@@ -1,9 +1,13 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from .constants import (
+    MAX_LENGTH150, MAX_LENGTH20, MAX_LENGTH254
+)
+
 
 class User(AbstractUser):
-    """Кастомная модель пользователя с дополнительными полями."""
+    """Пользователь с дополнительными полями."""
 
     USER = 'user'
     MODERATOR = 'moderator'
@@ -17,39 +21,30 @@ class User(AbstractUser):
 
     first_name = models.CharField(
         'имя',
-        max_length=150,
-        blank=True,
-        null=True,
+        max_length=MAX_LENGTH150,
+        default='',
     )
     last_name = models.CharField(
         'Фамилия',
-        max_length=150,
-        blank=True,
-        null=True
+        max_length=MAX_LENGTH150,
+        default='',
     )
 
     bio = models.TextField(
         'Биография',
         blank=True,
-        null=True,
+        null='',
     )
     role = models.CharField(
         'Роль',
-        max_length=20,
+        max_length=MAX_LENGTH20,
         choices=ROLE_CHOICES,
         default=USER,
     )
-    confirmation_code = models.CharField(
-        'Код подтверждения',
-        max_length=255,
-        blank=True,
-        null=True,
-    )
     email = models.EmailField(
         'Email',
+        max_length=MAX_LENGTH254,
         unique=True,
-        blank=False,
-        null=False,
     )
 
     class Meta:
