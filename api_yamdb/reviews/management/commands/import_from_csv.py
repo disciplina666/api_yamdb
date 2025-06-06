@@ -1,5 +1,6 @@
 import os
 from csv import DictReader
+from pathlib import Path
 
 from django.conf import settings
 from django.core.management import BaseCommand
@@ -22,11 +23,11 @@ DATA_DB = {
 class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
-        data_dir = os.path.join(settings.BASE_DIR, 'static', 'data')
+        data_dir = Path(settings.BASE_DIR) / 'static' / 'data'
         for model, filename in DATA_DB.items():
-            file_path = os.path.join(data_dir, filename)
+            file_path = data_dir / filename
             try:
-                with open(file_path, 'r', encoding='utf-8') as csv_file:
+                with file_path.open('r', encoding='utf-8') as csv_file:
                     reader = DictReader(csv_file)
                     objects_to_create = []
                     for row in reader:

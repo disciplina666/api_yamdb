@@ -6,12 +6,13 @@ from .views import (
     CategoryViewSet,
     CodeAuthView,
     CodeViewSet,
+    CommentViewSet,
     GenreViewSet,
+    ReviewViewSet,
     TitleViewSet,
     UserViewSet,
-    ReviewViewSet,
-    CommentViewSet,
 )
+
 
 router = DefaultRouter()
 router.register('categories', CategoryViewSet, basename='category')

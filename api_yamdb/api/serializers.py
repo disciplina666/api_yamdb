@@ -1,8 +1,7 @@
 from django.core.validators import RegexValidator
-
+from django.shortcuts import get_object_or_404
 from rest_framework import exceptions, serializers
-
-from reviews.models import Category, Genre, GenreTitle, Title, Review, Comment
+from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
 
 from users.models import User
 
@@ -13,7 +12,7 @@ class CodeAuthSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         try:
-            user = User.objects.get(username=attrs['username'])
+            user = get_object_or_404(User, username=attrs['username'])
             if user.confirmation_code != attrs['confirmation_code']:
                 raise exceptions.ValidationError('Неверный код подтверждения')
             return {'user': user}
@@ -126,21 +125,6 @@ class TitleWriteSerializer(serializers.ModelSerializer):
             'id', 'name', 'year', 'description',
             'genre', 'category'
         )
-
-    def create(self, validated_data):
-        genres = validated_data.pop('genre')
-        title = Title.objects.create(**validated_data)
-        for genre in genres:
-            GenreTitle.objects.create(genre=genre, title=title)
-        return title
-
-    def update(self, instance, validated_data):
-        genres = validated_data.pop('genre', None)
-        if genres is not None:
-            instance.genre.clear()
-            for genre in genres:
-                GenreTitle.objects.create(genre=genre, title=instance)
-        return super().update(instance, validated_data)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
