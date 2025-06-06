@@ -18,8 +18,7 @@ class CodeAuthSerializer(serializers.Serializer):
         confirmation_code = data.get('confirmation_code')
 
         try:
-
-            user = get_object_or_404(User, username=attrs['username'])
+            user = get_object_or_404(User, username=username)
         except User.DoesNotExist:
             raise NotFound('Пользователь с таким именем не существует')
 
