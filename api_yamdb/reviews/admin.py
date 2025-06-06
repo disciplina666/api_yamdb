@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Comment, Genre, Review, Title #GenreTitle
+from .models import Category, Comment, Genre, Review, Title
 
 
 class CommentInline(admin.TabularInline):
@@ -42,9 +42,3 @@ class TitleAdmin(admin.ModelAdmin):
 class CommentAdmin(admin.ModelAdmin):
     list_display = ('review', 'author', 'pub_date')
     search_fields = ('text', 'author__username')
-
-
-#@admin.register(GenreTitle)
-#class GenreTitleAdmin(admin.ModelAdmin):
-    #list_display = ('title', 'genre')
-    #search_fields = ('title__name', 'genre__name')
