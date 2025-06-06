@@ -1,4 +1,3 @@
-import os
 from csv import DictReader
 from pathlib import Path
 
