@@ -1,40 +1,28 @@
-import random
-
-from django.core.mail import send_mail
+from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from django.contrib.auth.tokens import default_token_generator
-
 from rest_framework import filters, mixins, serializers, status, viewsets
-
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import (IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import (
+    IsAuthenticated, IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from reviews.models import Category, Genre, Review, Title
 
+from reviews.models import Category, Genre, Review, Title
 from users.models import User
 
 from .filters import TitleFilter
 from .permissions import (
-    IsAdmin,
-    IsAdminModeratorAuthorOrReadOnly,
-    IsAdminOrReadOnly)
+    IsAdmin, IsAdminModeratorAuthorOrReadOnly, IsAdminOrReadOnly)
 from .serializers import (
-    CategorySerializer,
-    CodeAuthSerializer,
-    CommentSerializer,
-    GenreSerializer,
-    ReviewSerializer,
-    TitleReadSerializer,
-    TitleWriteSerializer,
-    UserRoleSerializer,
-    UserSerializer,
-)
+    CategorySerializer, CodeAuthSerializer,
+    CommentSerializer, GenreSerializer, ReviewSerializer, SignUpSerializer,
+    TitleReadSerializer, TitleWriteSerializer, UserRoleSerializer,
+    UserSerializer,)
+from .utils import send_confirmation_code
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -52,23 +40,20 @@ class UserViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated]
     )
     def me(self, request):
-        user = self.request.user
+        user = request.user
 
-        serializer_class = UserRoleSerializer
-
-        if request.method == 'GET':
-            serializer = serializer_class(user)
-            return Response(serializer.data)
-
-        if self.request.method == 'PATCH':
-            serializer = serializer_class(
-                user,
+        if request.method == 'PATCH':
+            serializer = UserRoleSerializer(
+                instance=user,
                 data=request.data,
                 partial=True
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
-        return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        serializer = self.get_serializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CodeAuthView(APIView):
@@ -85,42 +70,30 @@ class CodeAuthView(APIView):
         })
 
 
-class CodeViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+class SignUpAPIView(APIView):
 
-    @action(detail=False, methods=['post'])
-    def send_code(self, request):
-        serializer = self.get_serializer(data=request.data)
+    def post(self, request):
+        username = request.data.get('username')
+        email = request.data.get('email')
+
+        user = User.objects.filter(username=username, email=email).first()
+
+        if user:
+            confirmation_code = default_token_generator.make_token(user)
+            send_confirmation_code(confirmation_code, user.email)
+            return Response(
+                {'email': email, 'username': username},
+                status=status.HTTP_200_OK,
+            )
+
+        serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        email = serializer.validated_data['email']
-        username = serializer.validated_data['username']
-
-        code = ''.join(random.choices('0123456789', k=8))
-
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={'username': username}
-        )
-
-        if not created:
-            user.confirmation_code = code
-            user.save()
-
+        user = serializer.save()
         confirmation_code = default_token_generator.make_token(user)
-
-        send_mail(
-            subject='Ваш код подтверждения',
-            message=f'Код для входа: {confirmation_code}',
-            from_email=None,
-            recipient_list=[email],
-            fail_silently=False,
-        )
-
+        send_confirmation_code(confirmation_code, user.email)
         return Response(
-            {'email': email, 'username': username},
-            status=status.HTTP_200_OK
+            serializer.validated_data,
+            status=status.HTTP_200_OK,
         )
 
 
@@ -180,7 +153,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        return title.reviews.all().order_by('-pub_date')
+        return title.reviews.prefetch_related(
+            'author', 'comments__author').order_by('-pub_date')
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -190,11 +164,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         title = self.get_serializer_context()['title']
-        if Review.objects.filter(title=title,
-                                 author=self.request.user).exists():
+        if Review.objects.filter(
+                title=title, author=self.request.user).exists():
             raise serializers.ValidationError(
-                'Вы уже оставляли отзыв на это произведение.'
-            )
+                'Вы уже оставляли отзыв на это произведение.')
         serializer.save()
 
 
@@ -209,11 +182,11 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         review = get_object_or_404(
-            Review,
+            Review.objects.prefetch_related('comments__author'),
             pk=self.kwargs.get('review_id'),
             title__id=self.kwargs.get('title_id')
         )
-        return review.comments.all().order_by('-pub_date')
+        return review.comments.all()
 
     def perform_create(self, serializer):
         review = get_object_or_404(

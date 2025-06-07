@@ -1,11 +1,9 @@
-from django.core.validators import RegexValidator, MaxLengthValidator
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from rest_framework.exceptions import NotFound
-from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
 
-
+from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import User
 
 
@@ -17,11 +15,7 @@ class CodeAuthSerializer(serializers.Serializer):
         username = data.get('username')
         confirmation_code = data.get('confirmation_code')
 
-        try:
-            user = get_object_or_404(User, username=username)
-        except User.DoesNotExist:
-            raise NotFound('Пользователь с таким именем не существует')
-
+        user = get_object_or_404(User, username=username)
         if not default_token_generator.check_token(user, confirmation_code):
             raise serializers.ValidationError(
                 {'confirmation_code': 'Неверный код подтверждения'}
@@ -32,58 +26,63 @@ class CodeAuthSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(
-        required=True,
-        max_length=150,
-        validators=[
-            RegexValidator(
-                regex=r"^[\w.@+-]+\Z",
-                message="Имя пользователя содержит недопустимые символы",
-                code="invalid_username",
-            )
-        ],
-    )
-    email = serializers.EmailField(
-        required=True, max_length=254, validators=[MaxLengthValidator]
-    )
-
     class Meta:
         model = User
         fields = (
-            "username", "email", "first_name", "last_name", "bio", "role"
+            'username', 'email', 'first_name', 'last_name', 'bio', 'role'
         )
+        extra_kwargs = {
+            'username': {
+                'required': True,
+                'help_text': 'Только буквы, цифры и @/./+/-/_'
+            },
+            'email': {
+                'required': True,
+                'help_text': 'Максимальная длина 254 символа'
+            }
+        }
 
-    def validate(self, data):
-        email = data.get("email")
-        username = data.get("username")
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError(
+                "Пользователь с таким именем уже существует.")
+        return value
 
-        if username:
-            if username.lower() == "me":
-                raise serializers.ValidationError(
-                    {"username": 'Имя пользователя "me" не разрешено'}
-                )
-        if username and email:
-            try:
-                user = User.objects.get(username=username)
-                if user.email != email:
-                    raise serializers.ValidationError(
-                        {"email":
-                         ("Этот username уже зарегистрирован c другим email")}
-                    )
-            except User.DoesNotExist:
-                if User.objects.filter(email=email).exists():
-                    raise serializers.ValidationError(
-                        {"email": "Этот email уже зарегистрирован"}
-                    )
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "Пользователь с таким email уже существует.")
+        return value
 
-        return data
+
+class SignUpSerializer(UserSerializer):
+    class Meta:
+        model = User
+        fields = ('email', 'username',)
+        extra_kwargs = {
+            'username': {
+                'required': True,
+                'help_text': 'Только буквы, цифры и @/./+/-/_'
+            },
+            'email': {
+                'required': True,
+                'help_text': 'Максимальная длина 254 символа'
+            }
+        }
 
 
 class UserRoleSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
-        read_only_fields = (
-            "role", "username", "email", "is_superuser", "is_staff"
-        )
+        read_only_fields = ('role',)
+
+    def validate(self, data):
+        for attr, value in data.items():
+            setattr(self.instance, attr, value)
+        try:
+            self.instance.full_clean()
+        except ValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
+        return data
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -103,7 +102,7 @@ class GenreTitleSerializer(serializers.ModelSerializer):
     title = serializers.SlugRelatedField(slug_field="name", read_only=True)
 
     class Meta:
-        model = GenreTitle
+        model = Title
         fields = ("id", "genre", "title")
 
 

@@ -3,16 +3,8 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 
 from .views import (
-    CategoryViewSet,
-    CodeAuthView,
-    CodeViewSet,
-    CommentViewSet,
-    GenreViewSet,
-    ReviewViewSet,
-    TitleViewSet,
-    UserViewSet,
-)
-
+    CategoryViewSet, CodeAuthView, CommentViewSet, GenreViewSet,
+    ReviewViewSet, SignUpAPIView, TitleViewSet, UserViewSet,)
 
 router = DefaultRouter()
 router.register('categories', CategoryViewSet, basename='category')
@@ -31,12 +23,14 @@ router.register(
     basename='comments'
 )
 
+auth_urls = [
+    path('signup/', SignUpAPIView.as_view(), name='signup'),
+    path('token/', CodeAuthView.as_view(), name='token'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+]
+
 urlpatterns = [
-    path('auth/signup/', CodeViewSet.as_view({'post': 'send_code'}),
-         name='send_code'),
-    path('auth/token/', CodeAuthView.as_view(), name='token_obtain_pair'),
-    path('auth/token/refresh/', TokenRefreshView.as_view(),
-         name='token_refresh'),
-    path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('auth/', include(auth_urls)),
     path('', include(router.urls)),
 ]

@@ -13,7 +13,7 @@ class CommentInline(admin.TabularInline):
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     list_display = ('title', 'author', 'score', 'pub_date')
-    list_filter = ('score')
+    list_filter = ('score',)
     search_fields = ('text', 'author__username', 'title__name')
     inlines = [CommentInline]
 
@@ -33,7 +33,7 @@ class GenreAdmin(admin.ModelAdmin):
 @admin.register(Title)
 class TitleAdmin(admin.ModelAdmin):
     list_display = ('name', 'year', 'category')
-    list_filter = ('year', 'category')
+    list_filter = ('year', 'category',)
     search_fields = ('name',)
     filter_horizontal = ('genre',)
 

@@ -4,6 +4,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone as datezone
 
+from .constants import MAX_LENGTH_NAME, MAX_LENGTH_SLUG
 
 User = get_user_model()
 
@@ -15,8 +16,12 @@ def validate_year(value):
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=256, verbose_name='Категория')
-    slug = models.SlugField(max_length=50, unique=True)
+    name = models.CharField(
+        max_length=MAX_LENGTH_NAME, verbose_name='Категория'
+    )
+    slug = models.SlugField(
+        max_length=MAX_LENGTH_SLUG, unique=True, verbose_name='Слаг(ссылка)'
+    )
 
     class Meta:
         verbose_name = 'Категория'
@@ -28,8 +33,10 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
-    name = models.CharField(max_length=256, verbose_name='Жанр')
-    slug = models.SlugField(max_length=50, unique=True)
+    name = models.CharField(max_length=MAX_LENGTH_NAME, verbose_name='Жанр')
+    slug = models.SlugField(
+        max_length=MAX_LENGTH_SLUG, unique=True, verbose_name='Слаг(ссылка)'
+    )
 
     class Meta:
         verbose_name = 'Жанр'
@@ -41,24 +48,25 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
-    name = models.CharField(max_length=256, verbose_name='Название')
+    name = models.CharField(
+        max_length=MAX_LENGTH_NAME, verbose_name='Название'
+    )
     year = models.PositiveSmallIntegerField(
         validators=[
-            MinValueValidator(0),
-            MaxValueValidator(datezone.now().year)
+            MinValueValidator(1800),
         ]
     )
-    description = models.TextField(blank=True)
+    description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(
         Genre,
-        through='GenreTitle',
         related_name='titles'
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='titles'
+        related_name='titles',
+        verbose_name='Категории'
     )
 
     class Meta:
@@ -70,32 +78,6 @@ class Title(models.Model):
         return self.name
 
 
-class GenreTitle(models.Model):
-    genre = models.ForeignKey(
-        Genre,
-        on_delete=models.CASCADE,
-        related_name='genre_titles'
-    )
-    title = models.ForeignKey(
-        Title,
-        on_delete=models.CASCADE,
-        related_name='genre_titles'
-    )
-
-    class Meta:
-        verbose_name = 'Связь жанра и произведения'
-        verbose_name_plural = 'Связи жанров и произведений'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['genre', 'title'],
-                name='unique_genre_title'
-            )
-        ]
-
-    def __str__(self):
-        return f'{self.title} - {self.genre}'
-
-
 class Review(models.Model):
     title = models.ForeignKey(
         Title,
@@ -103,16 +85,17 @@ class Review(models.Model):
         verbose_name='Заголовок',
         related_name='reviews'
     )
-    text = models.TextField()
+    text = models.TextField('Текст')
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='reviews'
+        related_name='reviews',
+        verbose_name='Автор'
     )
     score = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(10)]
     )
-    pub_date = models.DateTimeField(auto_now_add=True)
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
     class Meta:
         verbose_name = 'Отзыв'
@@ -135,9 +118,10 @@ class Comment(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='comments'
+        related_name='comments',
+        verbose_name='Автор'
     )
-    pub_date = models.DateTimeField(auto_now_add=True)
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
     class Meta:
         verbose_name = 'Комментарий'
