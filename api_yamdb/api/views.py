@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from reviews.models import Category, Genre, Review, Title
+from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import User
 
 from .filters import TitleFilter
@@ -131,7 +131,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')
-    ).all()
+    ).select_related('category').prefetch_related('genre')
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = TitleFilter
@@ -152,9 +152,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
-        return title.reviews.prefetch_related(
-            'author', 'comments__author').order_by('-pub_date')
+        title_id = self.kwargs.get('title_id')
+        return Review.objects.filter(
+            title_id=title_id).select_related('author').prefetch_related(
+                'comments__author').order_by('-pub_date')
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -181,12 +182,11 @@ class CommentViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        review = get_object_or_404(
-            Review.objects.prefetch_related('comments__author'),
-            pk=self.kwargs.get('review_id'),
-            title__id=self.kwargs.get('title_id')
-        )
-        return review.comments.all()
+        review_id = self.kwargs.get('review_id')
+        title_id = self.kwargs.get('title_id')
+        return Comment.objects.filter(
+            review_id=review_id, review__title_id=title_id).select_related(
+                'author')
 
     def perform_create(self, serializer):
         review = get_object_or_404(

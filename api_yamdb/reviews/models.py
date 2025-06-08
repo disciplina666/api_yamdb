@@ -52,6 +52,7 @@ class Title(models.Model):
         max_length=MAX_LENGTH_NAME, verbose_name='Название'
     )
     year = models.PositiveSmallIntegerField(
+        'Год',
         validators=[
             MinValueValidator(1800),
         ]
@@ -59,7 +60,8 @@ class Title(models.Model):
     description = models.TextField('Описание', blank=True)
     genre = models.ManyToManyField(
         Genre,
-        related_name='titles'
+        related_name='titles',
+        verbose_name='Жанр'
     )
     category = models.ForeignKey(
         Category,
@@ -93,7 +95,7 @@ class Review(models.Model):
         verbose_name='Автор'
     )
     score = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(10)]
+        'Балл', validators=[MinValueValidator(1), MaxValueValidator(10)]
     )
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
@@ -114,7 +116,7 @@ class Comment(models.Model):
         verbose_name='комментарий',
         related_name='comments'
     )
-    text = models.TextField()
+    text = models.TextField('Текст')
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

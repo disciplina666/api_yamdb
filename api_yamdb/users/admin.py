@@ -8,12 +8,12 @@ User = get_user_model()
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     list_display = (
-        "username",
-        "email",
-        "role",
-        "first_name",
-        "last_name",
-        "is_staff",
+        'username',
+        'email',
+        'role',
+        'first_name',
+        'last_name',
+        'is_staff',
     )
     list_editable = ('role',)
     fieldsets = BaseUserAdmin.fieldsets

@@ -86,7 +86,7 @@ DATABASES = {
 }
 
 
-DEFAULT_FROM_EMAIL = '666disciplina666@gmail.com'
+DEFAULT_FROM_EMAIL = 'Example@gmail.com'
 
 # Password validation
 

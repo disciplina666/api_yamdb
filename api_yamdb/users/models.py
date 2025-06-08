@@ -8,7 +8,7 @@ from .constants import MAX_LENGTH_EMAIL, MAX_LENGTH_NAME, MAX_LENGTH_ROLE
 
 
 class User(AbstractUser):
-    """Модель пользователя."""
+    '''Модель пользователя.'''
 
     USER = 'user'
     MODERATOR = 'moderator'
